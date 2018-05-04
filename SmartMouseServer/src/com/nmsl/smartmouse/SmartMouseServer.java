@@ -174,6 +174,10 @@ class ServerRunable implements Runnable{
     		
     		String[] recvAccelerometer = new String[3];
     		
+    		double accelerationX = 0, accelerationY = 0, velocityX = 0, velocityY = 0, displacementX = 0, displacementY = 0;
+    		double timestamp = 0, timeinterval = 0, tmp = 0;
+    		int count = 0;
+    		
 			try {
 				
 	    		Reader mReader = new BufferedReader(new InputStreamReader
@@ -181,8 +185,7 @@ class ServerRunable implements Runnable{
 				
 	    		boolean isDisconnected = false;
 	    		
-				Sender("에코 서버에 접속하셨습니다.");
-				Sender( "보내신 문자를 에코해드립니다.");
+				Sender("서버에 접속하셨습니다.");
 	    		
 				while(true){
 
@@ -216,9 +219,33 @@ class ServerRunable implements Runnable{
 		            String recvMessage = stringBuilder.toString();
 			        log( mRemoteDeviceString + ": " + recvMessage );
 			        recvAccelerometer = recvMessage.split(",");
-			        robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX() + Double.parseDouble(recvAccelerometer[0])*10), (int) (MouseInfo.getPointerInfo().getLocation().getY() + Double.parseDouble(recvAccelerometer[1])*10));
-					//robot.mouseMove((int) Double.parseDouble(recvAccelerometer[0]), (int) Double.parseDouble(recvAccelerometer[1]));
-		            //Sender(recvMessage);
+			        
+			        if (count == 0) {
+			        	timestamp = Double.parseDouble(recvAccelerometer[3]);
+			        } else if (count == 1) {
+			        	timeinterval = (Double.parseDouble(recvAccelerometer[3]) - timestamp) / 1000000000;
+				        timestamp = Double.parseDouble(recvAccelerometer[3]);
+				        accelerationX = Double.parseDouble(recvAccelerometer[0]);
+				        velocityX = accelerationX * timeinterval + velocityX;
+				        accelerationY = Double.parseDouble(recvAccelerometer[1]);
+				        velocityY = accelerationY * timeinterval + velocityY;
+			        } else {
+			        	tmp = velocityX;
+			        	timeinterval = (Double.parseDouble(recvAccelerometer[3]) - timestamp) / 1000000000;
+				        timestamp = Double.parseDouble(recvAccelerometer[3]);
+				        accelerationX = Double.parseDouble(recvAccelerometer[0]);
+				        velocityX = accelerationX * timeinterval + velocityX;
+				        displacementX = tmp * timeinterval + 0.5 * accelerationX * timeinterval * timeinterval;
+				        tmp = velocityY;
+				        accelerationY = Double.parseDouble(recvAccelerometer[1]);
+				        velocityY = accelerationY * timeinterval + velocityY;
+				        displacementY = tmp * timeinterval + 0.5 * accelerationY * timeinterval * timeinterval;
+				        System.out.println("HAHA");
+				        System.out.println(timeinterval + " " + accelerationX + " " + velocityX + " " + displacementX + " " + displacementY);
+			        	//robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX() + displacementX * 10 ), (int) (MouseInfo.getPointerInfo().getLocation().getY() +displacementY * 10));
+			        	robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX() + displacementX * 100 ), (int) (MouseInfo.getPointerInfo().getLocation().getY()));
+			        }
+			        count ++;
 				}
 				
 			} catch (IOException e) {

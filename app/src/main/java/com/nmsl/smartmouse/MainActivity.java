@@ -3,6 +3,8 @@ package com.nmsl.smartmouse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.sql.Timestamp;
+import java.util.Date;
 import java.util.Set;
 import java.util.UUID;
 
@@ -38,6 +40,7 @@ import android.widget.ListView;
 public class MainActivity extends AppCompatActivity{
 
     Accelerometer accelerometer;
+    Gyroscope gyroscope;
     TextView accX, accY, accZ;
     Button connectButton;
     private BluetoothService bluetoothService;
@@ -56,7 +59,7 @@ public class MainActivity extends AppCompatActivity{
         setContentView(R.layout.activity_main);
 
         accelerometer = new Accelerometer();
-
+        //gyroscope = new Gyroscope();
 
         Log.d( TAG, "Initalizing Bluetooth adapter...");
 
@@ -81,12 +84,14 @@ public class MainActivity extends AppCompatActivity{
     protected void onResume() {
         super.onResume();
         accelerometer.registerListener();
+        //gyroscope.registerListener();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         accelerometer.unregisterListener();
+        //gyroscope.unregisterListener();
     }
 
     @Override
@@ -100,19 +105,89 @@ public class MainActivity extends AppCompatActivity{
     }
 
     private class Accelerometer implements SensorEventListener {
-        final SensorManager mSensorManager;
-        final Sensor mAccelerometer;
+            final SensorManager mSensorManager;
+            final Sensor mAccelerometer;
+            private final float NOISE;
+            float[] lastValues = new float[3];
+            float[] deltaValues = new float[3];
+            boolean initialized;
 
-        Accelerometer () {
+            Accelerometer () {
+                mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+                mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+                accX = (TextView) findViewById(R.id.accX);
+                accY = (TextView) findViewById(R.id.accY);
+                accZ = (TextView) findViewById(R.id.accZ);
+                lastValues[0] = 0;
+                lastValues[1] = 0;
+                lastValues[2] = 0;
+                deltaValues[0] = 0;
+                deltaValues[1] = 0;
+                deltaValues[2] = 0;
+                initialized = false;
+                NOISE = (float) 2.0;
+            }
+
+            void registerListener() {
+                mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+            }
+
+            void unregisterListener() {
+                mSensorManager.unregisterListener(this);
+            }
+
+            @Override
+            public void onSensorChanged(SensorEvent event) {
+
+                if (!initialized) {
+                    lastValues[0] = event.values[0];
+                    lastValues[1] = event.values[1];
+                    lastValues[2] = event.values[2];
+                    initialized = true;
+                } else {
+                    accX.setText("accX: "+ event.values[0]);
+                    accY.setText("accY: "+ event.values[1]);
+                    accZ.setText("accZ: "+ event.values[2]);
+                    deltaValues[0] = lastValues[0] - event.values[0];
+                    deltaValues[1] = lastValues[1] - event.values[1];
+                    deltaValues[2] = lastValues[2] - event.values[2];
+                    if (Math.abs(deltaValues[0]) < NOISE) deltaValues[0] = (float) 0.0;
+                    if (Math.abs(deltaValues[1]) < NOISE) deltaValues[1] = (float) 0.0;
+                    if (Math.abs(deltaValues[2]) < NOISE) deltaValues[2] = (float) 0.0;
+                    lastValues[0] = event.values[0];
+                    lastValues[1] = event.values[1];
+                    lastValues[2] = event.values[2];
+                    Date date = new Date();
+                    //Log.i("SMARTMOUSE", deltaValues[0]+","+deltaValues[1]+","+deltaValues[2]+","+ new Timestamp(event.timestamp));
+                    //sendMessage(deltaValues[0]+","+deltaValues[1]+","+deltaValues[2]+","+new Timestamp(event.timestamp));
+                    Log.i("SMARTMOUSE", deltaValues[0]+","+deltaValues[1]+","+deltaValues[2]+","+ new Timestamp(date.getTime()));
+                    //Log.i("SMARTMOUSE", eventValues[0]+","+deltaValues[1]+","+deltaValues[2]+","+ new Timestamp(date.getTime()));
+                }
+            }
+
+            @Override
+            public void onAccuracyChanged(Sensor sensor, int accuracy) {
+                // Do nothing here.
+            }
+    }
+
+    private class Gyroscope implements SensorEventListener {
+        final SensorManager mSensorManager;
+        final Sensor mGyroscope;
+        float[] gyro = new float[3];
+        float[] deltaRotationVector = new float[4];
+        private static final float NS2S = 1.0f / 1000000000.0f;
+        float omegaMagnitude;
+        float timestamp;
+        float[] deltaRotationMatrix = new float[9];
+
+        Gyroscope () {
             mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-            mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-            accX = (TextView) findViewById(R.id.accX);
-            accY = (TextView) findViewById(R.id.accY);
-            accZ = (TextView) findViewById(R.id.accZ);
+            mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         }
 
         void registerListener() {
-            mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+            mSensorManager.registerListener(this, mGyroscope, SensorManager.SENSOR_DELAY_NORMAL);
         }
 
         void unregisterListener() {
@@ -121,11 +196,27 @@ public class MainActivity extends AppCompatActivity{
 
         @Override
         public void onSensorChanged(SensorEvent event) {
-            accX.setText("accX: "+ event.values[0]);
-            accY.setText("accY: "+ event.values[1]);
-            accZ.setText("accZ: "+ event.values[2]);
-            Log.d("ACCELEROMETER", event.values+"");
-            sendMessage(event.values[0]+","+event.values[1]+","+event.values[2]);
+            if (timestamp != 0) {
+                final float dT = (event.timestamp - timestamp) * NS2S;
+                gyro[0] = event.values[0];
+                gyro[1] = event.values[1];
+                gyro[2] = event.values[2];
+                omegaMagnitude = (float) Math.sqrt(gyro[0] * gyro[0] + gyro[1] * gyro[1] + gyro[2] * gyro[2]);
+                if (true) {
+                    gyro[0] /= omegaMagnitude;
+                    gyro[1] /= omegaMagnitude;
+                    gyro[2] /= omegaMagnitude;
+                }
+                deltaRotationVector[0] = (float) Math.sin(omegaMagnitude * dT / 2.0f) * gyro[0];
+                deltaRotationVector[1] = (float) Math.sin(omegaMagnitude * dT / 2.0f) * gyro[1];
+                deltaRotationVector[2] = (float) Math.sin(omegaMagnitude * dT / 2.0f) * gyro[2];
+                deltaRotationVector[3] = (float) Math.cos(omegaMagnitude * dT / 2.0f);
+            }
+            timestamp = event.timestamp;
+            SensorManager.getRotationMatrixFromVector(deltaRotationMatrix, deltaRotationVector);
+            for(int i =0; i<deltaRotationMatrix.length; i++){
+                Log.i("ROTATION"+i, deltaRotationMatrix[i]+"");
+            }
         }
 
         @Override
