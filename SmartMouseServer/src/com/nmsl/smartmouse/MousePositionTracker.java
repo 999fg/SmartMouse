@@ -12,7 +12,7 @@ public class MousePositionTracker {
 	public static void main(String args[]) {
 		FileOutputStream output = null;
 		try {
-			output = new FileOutputStream("C:/Users/Jaemin Shin/Documents/out.csv");
+			output = new FileOutputStream("/home/jaemin/jaemin.shin/CS442/out.csv");
 		} catch (FileNotFoundException e){
 			e.printStackTrace();
 		}
