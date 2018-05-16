@@ -112,7 +112,6 @@ class ServerRunable implements Runnable{
 			
         	
 			count++;
-			log("현재 접속 중인 클라이언트 수: " + count);
 			
 								
 	        new Receiver(mStreamConnection).start();
@@ -185,7 +184,7 @@ class ServerRunable implements Runnable{
 				
 	    		boolean isDisconnected = false;
 	    		
-				Sender("서버에 접속하셨습니다.");
+				Sender("You have accessed the server.");
 	    		
 				while(true){
 
@@ -203,7 +202,7 @@ class ServerRunable implements Runnable{
 							log("Client has been disconnected");
 							
 							count--;
-							log("현재 접속 중인 클라이언트 수: " + count);
+							log("Current number of clients: " + count);
 							
 							isDisconnected = true;
 							Thread.currentThread().interrupt();
