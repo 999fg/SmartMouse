@@ -139,6 +139,7 @@ public class MainActivity extends AppCompatActivity{
         float[] deltaValues = new float[3];
         float[] velocity = new float[3];
         float[] displacement = new float[3];
+        float z_initial_displacement = 0;
         long last_timestamp = 0;
         long curr_timestamp = 0;
         long time_interval = 0;
@@ -190,9 +191,19 @@ public class MainActivity extends AppCompatActivity{
 
                 curr_timestamp = new Date().getTime();
                 time_interval = curr_timestamp - last_timestamp;
+                //Log.i("LIAAO", time_interval + "," + velocity[0] * time_interval + "," + event.values[0] * time_interval * time_interval / 2);
                 displacement[0] = velocity[0] * time_interval + event.values[0] * time_interval * time_interval / 2;
                 displacement[1] = velocity[1] * time_interval + event.values[1] * time_interval * time_interval / 2;
                 displacement[2] = velocity[2] * time_interval + event.values[2] * time_interval * time_interval / 2;
+
+                /*
+                if (z_initial_displacement == 0 & displacement[2] == 0){
+                    displacement[2] = velocity[2] * time_interval + event.values[2] * time_interval * time_interval / 2;
+                    z_initial_displacement = displacement[2];
+                } else {
+                    displacement[2] = velocity[2] * time_interval + event.values[2] * time_interval * time_interval / 2;
+                }
+                */
                 velocity[0] = velocity[0] + event.values[0] * time_interval; //TODO: Check the unit, it is m/s^2!
                 velocity[1] = velocity[1] + event.values[1] * time_interval; //TODO: Check the unit, it is m/s^2!
                 velocity[2] = velocity[2] + event.values[2] * time_interval; //TODO: Check the unit, it is m/s^2!
@@ -212,11 +223,15 @@ public class MainActivity extends AppCompatActivity{
                 //Log.i("SMARTMOUSE", event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + new Date().getTime());
                 //Log.i("SMARTMOUSE", eventValues[0]+","+deltaValues[1]+","+deltaValues[2]+","+ new Timestamp(date.getTime()));
                 try {
-                    if (isWriting)
-                        output.write((event.values[0] + "," + event.values[1] + "," + event.values[2] + ","  + displacement[0] + ","  + displacement[1] + ","  + displacement[2] + "," + curr_timestamp+"\n").getBytes());
+                    if (isWriting) {
+                        output.write((event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + displacement[0] + "," + displacement[1] + "," + displacement[2] + "," + curr_timestamp + "\n").getBytes());
+                        //output.write((event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + displacement[0] * z_initial_displacement / displacement[2] + "," + displacement[1] + "," + displacement[2] + "," + curr_timestamp + "\n").getBytes());
+
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                last_timestamp = curr_timestamp;
             }
         }
 
