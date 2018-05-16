@@ -53,6 +53,8 @@ public class MainActivity extends AppCompatActivity{
     LinearAccelerometer linearAccelerometer;
     TextView accX, accY, accZ;
     Button connectButton;
+    Button recordStartButton;
+    Button recordStopButton;
     private BluetoothService bluetoothService;
 
     private final int REQUEST_BLUETOOTH_ENABLE = 100;
@@ -63,11 +65,16 @@ public class MainActivity extends AppCompatActivity{
     static boolean isConnectionError = false;
     private static final String TAG = "BluetoothClient";
     FileOutputStream output = null;
+    Boolean isWriting = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        recordStartButton = (Button) findViewById(R.id.recordStartButton);
+        recordStopButton = (Button) findViewById(R.id.recordStopButton);
+
 
         //accelerometer = new Accelerometer();
         linearAccelerometer = new LinearAccelerometer();
@@ -118,14 +125,34 @@ public class MainActivity extends AppCompatActivity{
             }
         }
 
-        if (isExternalStorageWritable()) {
-            try {
-                output = new FileOutputStream(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/out.csv", false);
-            } catch (FileNotFoundException e){
-                e.printStackTrace();
+        recordStartButton.setOnClickListener(new View.OnClickListener(){
+            public void onClick(View v) {
+                if (isExternalStorageWritable()) {
+                    try {
+                        output = new FileOutputStream(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/out.csv", false);
+                        isWriting = true;
+                    } catch (FileNotFoundException e){
+                        e.printStackTrace();
+                    }
+                }
             }
-        }
+        });
+
+        recordStopButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                if (isWriting) {
+                    try {
+                        output.close();
+                        Log.i("LIAAO", "the file closed");
+                        isWriting = false;
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
     }
+
 
     @Override
     protected void onResume() {
@@ -295,7 +322,8 @@ public class MainActivity extends AppCompatActivity{
                 Log.i("SMARTMOUSE", event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + new Date().getTime());
                 //Log.i("SMARTMOUSE", eventValues[0]+","+deltaValues[1]+","+deltaValues[2]+","+ new Timestamp(date.getTime()));
                 try {
-                    output.write((event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + new Date().getTime()+"\n").getBytes());
+                    if (isWriting)
+                        output.write((event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + new Date().getTime()+"\n").getBytes());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
