@@ -42,6 +42,22 @@ public class MainActivity extends AppCompatActivity{
         recordStartButton = (Button) findViewById(R.id.recordStartButton);
         recordStopButton = (Button) findViewById(R.id.recordStopButton);
 
+        if (isExternalStorageWritable()) {
+            try {
+                output = new FileOutputStream(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/outlog.csv", false);
+                output.write(("AccX" + "," + "AccY" + "," + "AccZ" + ","
+                        + "eventValuesWithoutNoiseX" + "," + "eventValuesWithoutNoiseY" + "," + "eventValuesWithoutNoiseZ" + ","
+                        + "VelocityX" + "," + "VelocityY" + "," + "VelocityZ" + ","
+                        + "DisplacementX" + "," + "DisplacementY" + "," + "DisplacementZ" + ","
+                        + "Timestamp" + "\n").getBytes());
+                isWriting = true;
+            } catch (FileNotFoundException e){
+                e.printStackTrace();
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
+        }
+
 
         //accelerometer = new Accelerometer();
         linearAccelerometer = new LinearAccelerometer();
@@ -73,20 +89,26 @@ public class MainActivity extends AppCompatActivity{
                 // result of the request.
             }
         }
-
+/*
         recordStartButton.setOnClickListener(new View.OnClickListener(){
             public void onClick(View v) {
                 if (isExternalStorageWritable()) {
                     try {
                         output = new FileOutputStream(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/outlog.csv", false);
+                        output.write(("AccX" + "," + "AccY" + "," + "AccZ" + ","
+                                + "VelocityX" + "," + "VelocityY" + "," + "VelocityZ" + ","
+                                + "DisplacementX" + "," + "DisplacementY" + "," + "DisplacementZ" + ","
+                                + "Timestamp" + "\n").getBytes());
                         isWriting = true;
                     } catch (FileNotFoundException e){
                         e.printStackTrace();
+                    } catch (IOException ioe) {
+                        ioe.printStackTrace();
                     }
                 }
             }
         });
-
+*/
         recordStopButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 if (isWriting) {
@@ -139,6 +161,7 @@ public class MainActivity extends AppCompatActivity{
         float[] deltaValues = new float[3];
         float[] velocity = new float[3];
         float[] displacement = new float[3];
+        float[] eventValuesWithoutNoise = new float[3];
         float z_initial_displacement = 0;
         long last_timestamp = 0;
         long curr_timestamp = 0;
@@ -192,9 +215,27 @@ public class MainActivity extends AppCompatActivity{
                 curr_timestamp = new Date().getTime();
                 time_interval = curr_timestamp - last_timestamp;
                 //Log.i("LIAAO", time_interval + "," + velocity[0] * time_interval + "," + event.values[0] * time_interval * time_interval / 2);
-                displacement[0] = velocity[0] * time_interval + event.values[0] * time_interval * time_interval / 2;
-                displacement[1] = velocity[1] * time_interval + event.values[1] * time_interval * time_interval / 2;
-                displacement[2] = velocity[2] * time_interval + event.values[2] * time_interval * time_interval / 2;
+                eventValuesWithoutNoise[0] = event.values[0];
+                eventValuesWithoutNoise[1] = event.values[1];
+                eventValuesWithoutNoise[2] = event.values[2];
+                if (Math.abs(event.values[0]) < 0.5) {
+                    eventValuesWithoutNoise[0] = 0;
+                }
+                if (Math.abs(event.values[1]) < 0.5) {
+                    eventValuesWithoutNoise[1] = 0;
+                }
+                if (Math.abs(event.values[2]) < 0.5) {
+                    eventValuesWithoutNoise[2] = 0;
+                }
+
+                //displacement[0] = velocity[0] * time_interval + event.values[0] * time_interval * time_interval / 2;
+                //displacement[1] = velocity[1] * time_interval + event.values[1] * time_interval * time_interval / 2;
+                //displacement[2] = velocity[2] * time_interval + event.values[2] * time_interval * time_interval / 2;
+
+                displacement[0] = velocity[0] * time_interval + eventValuesWithoutNoise[0] * time_interval * time_interval / 2;
+                displacement[1] = velocity[1] * time_interval + eventValuesWithoutNoise[1] * time_interval * time_interval / 2;
+                displacement[2] = velocity[2] * time_interval + eventValuesWithoutNoise[2] * time_interval * time_interval / 2;
+
 
                 /*
                 if (z_initial_displacement == 0 & displacement[2] == 0){
@@ -204,9 +245,9 @@ public class MainActivity extends AppCompatActivity{
                     displacement[2] = velocity[2] * time_interval + event.values[2] * time_interval * time_interval / 2;
                 }
                 */
-                velocity[0] = velocity[0] + event.values[0] * time_interval; //TODO: Check the unit, it is m/s^2!
-                velocity[1] = velocity[1] + event.values[1] * time_interval; //TODO: Check the unit, it is m/s^2!
-                velocity[2] = velocity[2] + event.values[2] * time_interval; //TODO: Check the unit, it is m/s^2!
+                velocity[0] = velocity[0] + eventValuesWithoutNoise[0] * time_interval; //TODO: Check the unit, it is m/s^2!
+                velocity[1] = velocity[1] + eventValuesWithoutNoise[1] * time_interval; //TODO: Check the unit, it is m/s^2!
+                velocity[2] = velocity[2] + eventValuesWithoutNoise[2] * time_interval; //TODO: Check the unit, it is m/s^2!
 
 
                 //deltaValues[0] = lastValues[0] - event.values[0];
@@ -224,7 +265,11 @@ public class MainActivity extends AppCompatActivity{
                 //Log.i("SMARTMOUSE", eventValues[0]+","+deltaValues[1]+","+deltaValues[2]+","+ new Timestamp(date.getTime()));
                 try {
                     if (isWriting) {
-                        output.write((event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + displacement[0] + "," + displacement[1] + "," + displacement[2] + "," + curr_timestamp + "\n").getBytes());
+                        output.write((event.values[0] + "," + event.values[1] + "," + event.values[2] + ","
+                                + eventValuesWithoutNoise[0] + "," + eventValuesWithoutNoise[1] + "," + eventValuesWithoutNoise[2] + ","
+                                + velocity[0] + "," + velocity[1] + "," + velocity[2] + ","
+                                + displacement[0] + "," + displacement[1] + "," + displacement[2] + ","
+                                + curr_timestamp + "\n").getBytes());
                         //output.write((event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + displacement[0] * z_initial_displacement / displacement[2] + "," + displacement[1] + "," + displacement[2] + "," + curr_timestamp + "\n").getBytes());
 
                     }
