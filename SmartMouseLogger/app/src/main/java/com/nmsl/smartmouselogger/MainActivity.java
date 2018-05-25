@@ -90,7 +90,7 @@ public class MainActivity extends AppCompatActivity{
                 // result of the request.
             }
         }
-/*
+/*x
         recordStartButton.setOnClickListener(new View.OnClickListener(){
             public void onClick(View v) {
                 if (isExternalStorageWritable()) {
@@ -165,12 +165,16 @@ public class MainActivity extends AppCompatActivity{
         float[] deltaDisplacement = new float[3];
         float[] oldDisplacement = new float[3];
         float[] eventValuesWithoutNoise = new float[3];
+
+        float[] testFFT = new float[512];
+        int testCount = 0;
+        float testMax = 0;
+
         float z_initial_displacement = 0;
         long last_timestamp = 0;
         long curr_timestamp = 0;
         long time_interval = 0;
         boolean initialized;
-        int count = 0;
 
         LinearAccelerometer () {
             mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -214,8 +218,9 @@ public class MainActivity extends AppCompatActivity{
                 lastEventValues[2] = 0;
                 //lastValues[0] = event.values[0];
                 //lastValues[1] = event.values[1];
-                //lastValues[2] = event.values[2];
+                //lastValues[2] = event.values[2];Mo
                 initialized = true;
+                testCount = 0;
             } else {
                 //accX.setText("accX: " + event.values[0]);
                 //accY.setText("accY: " + event.values[1]);
@@ -236,6 +241,10 @@ public class MainActivity extends AppCompatActivity{
                 if (Math.abs(event.values[2] - lastEventValues[2]) < 0.15) {
                     eventValuesWithoutNoise[2] = lastEventValues[2];
                 }
+                testFFT[testCount] = event.values[0];
+                if (testMax < event.values[0]) {
+                    testMax = event.values[0];
+                }
 
                 displacement[0] = velocity[0] * time_interval + eventValuesWithoutNoise[0] * time_interval * time_interval / 2;
                 displacement[1] = velocity[1] * time_interval + eventValuesWithoutNoise[1] * time_interval * time_interval / 2;
@@ -244,13 +253,12 @@ public class MainActivity extends AppCompatActivity{
                 deltaDisplacement[1] = displacement[1] - oldDisplacement[1];
                 deltaDisplacement[2] = displacement[2] - oldDisplacement[2];
 
-
                 velocity[0] = velocity[0] + eventValuesWithoutNoise[0] * time_interval; //TODO: Check the unit, it is m/s^2!
                 velocity[1] = velocity[1] + eventValuesWithoutNoise[1] * time_interval; //TODO: Check the unit, it is m/s^2!
                 velocity[2] = velocity[2] + eventValuesWithoutNoise[2] * time_interval; //TODO: Check the unit, it is m/s^2!
 
-
                 try {
+                    /*
                     if (isWriting) {
                         output.write((event.values[0] + "," + event.values[1] + "," + event.values[2] + ","
                                 + eventValuesWithoutNoise[0] + "," + eventValuesWithoutNoise[1] + "," + eventValuesWithoutNoise[2] + ","
@@ -259,6 +267,7 @@ public class MainActivity extends AppCompatActivity{
                                 + deltaDisplacement[0] + "," + deltaDisplacement[1] + "," + deltaDisplacement[2] + ","
                                 + curr_timestamp + "\n").getBytes());
                     }
+                    */
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -270,6 +279,14 @@ public class MainActivity extends AppCompatActivity{
                 lastEventValues[0] = event.values[0];
                 lastEventValues[1] = event.values[1];
                 lastEventValues[2] = event.values[2];
+
+                testCount++;
+                if (testCount == 512) {
+                    double FFTResult[] = new FFT(512).getFreqSpectrumFromFloat(testFFT, testMax);
+                    for (int i = 0; i < FFTResult[i]; i ++) {
+                        
+                    }
+                }
             }
         }
 
