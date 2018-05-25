@@ -217,6 +217,10 @@ class ServerRunable implements Runnable{
 		            
 		            String recvMessage = stringBuilder.toString();
 			        log( mRemoteDeviceString + ": " + recvMessage );
+					robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX() + Double.parseDouble(recvMessage.split(",")[0]) / 1 ), (int) (MouseInfo.getPointerInfo().getLocation().getY()));
+					//robot.mouseMove((int) (Double.parseDouble(recvMessage.split(",")[0]) / 10 ), (int) (MouseInfo.getPointerInfo().getLocation().getY()));
+
+			        /*
 			        recvAccelerometer = recvMessage.split(",");
 			        
 			        if (count == 0) {
@@ -245,6 +249,7 @@ class ServerRunable implements Runnable{
 			        	robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX() + displacementX * 100 ), (int) (MouseInfo.getPointerInfo().getLocation().getY()));
 			        }
 			        count ++;
+			        */
 				}
 				
 			} catch (IOException e) {

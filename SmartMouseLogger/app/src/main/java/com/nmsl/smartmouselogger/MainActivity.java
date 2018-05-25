@@ -49,6 +49,7 @@ public class MainActivity extends AppCompatActivity{
                         + "eventValuesWithoutNoiseX" + "," + "eventValuesWithoutNoiseY" + "," + "eventValuesWithoutNoiseZ" + ","
                         + "VelocityX" + "," + "VelocityY" + "," + "VelocityZ" + ","
                         + "DisplacementX" + "," + "DisplacementY" + "," + "DisplacementZ" + ","
+                        + "deltaDisplacementX" + "," + "deltaDisplacementY" + "," + "deltaDisplacementZ" + ","
                         + "Timestamp" + "\n").getBytes());
                 isWriting = true;
             } catch (FileNotFoundException e){
@@ -157,16 +158,19 @@ public class MainActivity extends AppCompatActivity{
     private class LinearAccelerometer implements SensorEventListener {
         final SensorManager mSensorManager;
         final Sensor mLinearAccelerometer;
-        float[] lastValues = new float[3];
+        float[] lastEventValues = new float[3];
         float[] deltaValues = new float[3];
         float[] velocity = new float[3];
         float[] displacement = new float[3];
+        float[] deltaDisplacement = new float[3];
+        float[] oldDisplacement = new float[3];
         float[] eventValuesWithoutNoise = new float[3];
         float z_initial_displacement = 0;
         long last_timestamp = 0;
         long curr_timestamp = 0;
         long time_interval = 0;
         boolean initialized;
+        int count = 0;
 
         LinearAccelerometer () {
             mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -197,12 +201,17 @@ public class MainActivity extends AppCompatActivity{
 
         @Override
         public void onSensorChanged(SensorEvent event) {
-
             if (!initialized) {
                 last_timestamp = new Date().getTime();
                 velocity[0] = 0;
                 velocity[1] = 0;
                 velocity[2] = 0;
+                oldDisplacement[0] = 0;
+                oldDisplacement[1] = 0;
+                oldDisplacement[2] = 0;
+                lastEventValues[0] = 0;
+                lastEventValues[1] = 0;
+                lastEventValues[2] = 0;
                 //lastValues[0] = event.values[0];
                 //lastValues[1] = event.values[1];
                 //lastValues[2] = event.values[2];
@@ -218,65 +227,49 @@ public class MainActivity extends AppCompatActivity{
                 eventValuesWithoutNoise[0] = event.values[0];
                 eventValuesWithoutNoise[1] = event.values[1];
                 eventValuesWithoutNoise[2] = event.values[2];
-                if (Math.abs(event.values[0]) < 0.5) {
-                    eventValuesWithoutNoise[0] = 0;
+                if (Math.abs(event.values[0] - lastEventValues[0]) < 0.15) {
+                    eventValuesWithoutNoise[0] = lastEventValues[0];
                 }
-                if (Math.abs(event.values[1]) < 0.5) {
-                    eventValuesWithoutNoise[1] = 0;
+                if (Math.abs(event.values[1] - lastEventValues[1]) < 0.15) {
+                    eventValuesWithoutNoise[1] = lastEventValues[1];
                 }
-                if (Math.abs(event.values[2]) < 0.5) {
-                    eventValuesWithoutNoise[2] = 0;
+                if (Math.abs(event.values[2] - lastEventValues[2]) < 0.15) {
+                    eventValuesWithoutNoise[2] = lastEventValues[2];
                 }
-
-                //displacement[0] = velocity[0] * time_interval + event.values[0] * time_interval * time_interval / 2;
-                //displacement[1] = velocity[1] * time_interval + event.values[1] * time_interval * time_interval / 2;
-                //displacement[2] = velocity[2] * time_interval + event.values[2] * time_interval * time_interval / 2;
 
                 displacement[0] = velocity[0] * time_interval + eventValuesWithoutNoise[0] * time_interval * time_interval / 2;
                 displacement[1] = velocity[1] * time_interval + eventValuesWithoutNoise[1] * time_interval * time_interval / 2;
                 displacement[2] = velocity[2] * time_interval + eventValuesWithoutNoise[2] * time_interval * time_interval / 2;
+                deltaDisplacement[0] = displacement[0] - oldDisplacement[0];
+                deltaDisplacement[1] = displacement[1] - oldDisplacement[1];
+                deltaDisplacement[2] = displacement[2] - oldDisplacement[2];
 
 
-                /*
-                if (z_initial_displacement == 0 & displacement[2] == 0){
-                    displacement[2] = velocity[2] * time_interval + event.values[2] * time_interval * time_interval / 2;
-                    z_initial_displacement = displacement[2];
-                } else {
-                    displacement[2] = velocity[2] * time_interval + event.values[2] * time_interval * time_interval / 2;
-                }
-                */
                 velocity[0] = velocity[0] + eventValuesWithoutNoise[0] * time_interval; //TODO: Check the unit, it is m/s^2!
                 velocity[1] = velocity[1] + eventValuesWithoutNoise[1] * time_interval; //TODO: Check the unit, it is m/s^2!
                 velocity[2] = velocity[2] + eventValuesWithoutNoise[2] * time_interval; //TODO: Check the unit, it is m/s^2!
 
 
-                //deltaValues[0] = lastValues[0] - event.values[0];
-                //deltaValues[1] = lastValues[1] - event.values[1];
-                //deltaValues[2] = lastValues[2] - event.values[2];
-                //if (Math.abs(deltaValues[0]) < NOISE) deltaValues[0] = (float) 0.0;
-                //if (Math.abs(deltaValues[1]) < NOISE) deltaValues[1] = (float) 0.0;
-                //if (Math.abs(deltaValues[2]) < NOISE) deltaValues[2] = (float) 0.0;
-                //lastValues[0] = event.values[0];
-                //lastValues[1] = event.values[1];
-                //lastValues[2] = event.values[2];
-                //Log.i("SMARTMOUSE", deltaValues[0]+","+deltaValues[1]+","+deltaValues[2]+","+ new Timestamp(event.timestamp));
-                //sendMessage(deltaValues[0]+","+deltaValues[1]+","+deltaValues[2]+","+new Date().getTime());
-                //Log.i("SMARTMOUSE", event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + new Date().getTime());
-                //Log.i("SMARTMOUSE", eventValues[0]+","+deltaValues[1]+","+deltaValues[2]+","+ new Timestamp(date.getTime()));
                 try {
                     if (isWriting) {
                         output.write((event.values[0] + "," + event.values[1] + "," + event.values[2] + ","
                                 + eventValuesWithoutNoise[0] + "," + eventValuesWithoutNoise[1] + "," + eventValuesWithoutNoise[2] + ","
                                 + velocity[0] + "," + velocity[1] + "," + velocity[2] + ","
                                 + displacement[0] + "," + displacement[1] + "," + displacement[2] + ","
+                                + deltaDisplacement[0] + "," + deltaDisplacement[1] + "," + deltaDisplacement[2] + ","
                                 + curr_timestamp + "\n").getBytes());
-                        //output.write((event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + displacement[0] * z_initial_displacement / displacement[2] + "," + displacement[1] + "," + displacement[2] + "," + curr_timestamp + "\n").getBytes());
-
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
                 last_timestamp = curr_timestamp;
+                oldDisplacement[0] = displacement[0];
+                oldDisplacement[1] = displacement[1];
+                oldDisplacement[2] = displacement[2];
+
+                lastEventValues[0] = event.values[0];
+                lastEventValues[1] = event.values[1];
+                lastEventValues[2] = event.values[2];
             }
         }
 
