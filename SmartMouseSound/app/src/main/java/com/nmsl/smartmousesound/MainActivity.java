@@ -39,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
     AlertDialog.Builder pairedDeviceDialogBuilder;
     AlertDialog.Builder errorDialogBuilder;
 
-    byte[] micData = new byte[1012];
+    byte[] micData = new byte[882];
     //short[] micData = new short[512];
     int i = 0;
     private Thread recordingThread = null;
@@ -103,14 +103,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void listenAudioData() {
-        AudioRecord recorder = new AudioRecord(MediaRecorder.AudioSource.MIC, 44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, 1012);
+        AudioRecord recorder = new AudioRecord(MediaRecorder.AudioSource.MIC, 44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, 882);
         //AudioRecord recorder = new AudioRecord(MediaRecorder.AudioSource.MIC, 44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_FLOAT, 1012);
         if (recorder.getState() == AudioRecord.STATE_INITIALIZED){
             recorder.startRecording();
 
             while (true) {
                 //recorder.read(micData, 0, 882);
-                recorder.read(micData, 0, 1012);
+                recorder.read(micData, 0, 882);
                 if (mConnectedTask != null) {
                     mConnectedTask.write_bytes(micData);
                 }

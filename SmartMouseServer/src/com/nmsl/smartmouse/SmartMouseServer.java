@@ -71,6 +71,19 @@ class ServerRunable implements Runnable{
     private StreamConnectionNotifier mStreamConnectionNotifier = null;  
     private StreamConnection mStreamConnection = null; 
     private int count = 0;
+    private int lastFrequency1 = 0;
+    private int lastFrequency2 = 0;
+    private double d01 = 0.2;
+    private double d02 = 0.2;
+    private double d11 = 0.0;
+    private double d12 = 0.0;
+    private double d = 0.3;
+    private double c1 = 0.018242; //speed of 19kHz
+	private double c2 = 0.016907; //speed of 20.5kHz
+	private double ts = 0.04; //time interval 40ms
+	private double x0 = 0.15;
+	private double y0 = 0.15;
+	private boolean initialized = false;
     private int parityCheck = 1;
    
     private static Robot robot;
@@ -132,9 +145,17 @@ class ServerRunable implements Runnable{
         private StreamConnection mStreamConnection = null;
 		//private byte[] input = new byte[44100];
 		//private byte[] input = new byte[1764];
-		//private byte[] input_1 = new byte[882];
-        //private byte[] input_2 = new byte[882];
+		private byte[] input_1 = new byte[882];
+        private byte[] input_2 = new byte[882];
+		private byte[] input_3 = new byte[882];
+		private byte[] input_4 = new byte[882];
+		private short[] input_short_1 = new short[441];
+		private short[] input_short_2 = new short[441];
+		private short[] input_short_3 = new short[441];
+		private short[] input_short_4 = new short[441];
 		//private byte[] input = new byte[4048];
+		/*
+		private byte[] input_0 = new byte[1764];
 		private byte[] input_1 = new byte[1012];
 		private byte[] input_2 = new byte[1012];
 		private byte[] input_3 = new byte[1012];
@@ -143,7 +164,8 @@ class ServerRunable implements Runnable{
 		private byte[] input_6 = new byte[1012];
 		private byte[] input_7 = new byte[1012];
 		private byte[] input_8 = new byte[1012];
-        //private short[] input_short = new short[32768];
+		*/
+        private short[] input_short = new short[44100];
 
         //private double[] FFTResult;
         private int indexCounter = 0;
@@ -196,8 +218,6 @@ class ServerRunable implements Runnable{
     		
     		double accelerationX = 0, accelerationY = 0, velocityX = 0, velocityY = 0, displacementX = 0, displacementY = 0;
     		double timestamp = 0, timeinterval = 0, tmp = 0;
-    		int count = 0;
-    		
 			try {
 				
 	    		//Reader mReader = new BufferedReader(new InputStreamReader( mInputStream, Charset.forName(StandardCharsets.UTF_8.name())));
@@ -219,15 +239,23 @@ class ServerRunable implements Runnable{
 
 
 					while ((c = mInputStream.read(input_1)) != -1) {
+						ByteBuffer.wrap(input_1).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_1);
+						System.arraycopy(input_short_1, 0, input_short, 0, 441);
 						if ((c = mInputStream.read(input_2)) == -1) {
 							break;
 						}
+						ByteBuffer.wrap(input_2).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_2);
+						System.arraycopy(input_short_2, 0, input_short, 0, 441);
 						if ((c = mInputStream.read(input_3)) == -1) {
 							break;
 						}
+						ByteBuffer.wrap(input_3).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_3);
+						System.arraycopy(input_short_3, 0, input_short, 0, 441);
 						if ((c = mInputStream.read(input_4)) == -1) {
 							break;
 						}
+						ByteBuffer.wrap(input_4).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_4);
+						System.arraycopy(input_short_4, 0, input_short, 0, 441);
 						/*
 						if ((c = mInputStream.read(input_5)) == -1) {
 							break;
@@ -249,10 +277,11 @@ class ServerRunable implements Runnable{
 						Thread dataHandlingThread = new Thread(new Runnable() {
 							public void run() {
 								//dataHandle(input_1, input_2, input_3, input_4, input_5, input_6, input_7, input_8);
-								dataHandle(input_1, input_2, input_3, input_4);
+								dataHandle_short(input_short);
 							}
 						});
 						dataHandlingThread.start();
+
 					}
 
 
@@ -327,34 +356,34 @@ class ServerRunable implements Runnable{
     		log( "Me : " + msg );
     	}
 
-    	void dataHandle(byte[] input1, byte[] input2, byte[] input3, byte[] input4) {
+    	void dataHandle(byte[] input1, byte[] input2) {
 			//float[] input_float = new float[input.length/4];
-			short[] input_short_1 = new short[506];
-			short[] input_short_2 = new short[506];
-			short[] input_short_3 = new short[506];
-			short[] input_short_4 = new short[506];
+			short[] input_short_1 = new short[442];
+			//short[] input_short_2 = new short[506];
+			//short[] input_short_3 = new short[506];
+			//short[] input_short_4 = new short[506];
 			//short[] input_short_5 = new short[506];
 			//short[] input_short_6 = new short[506];
 			//short[] input_short_7 = new short[506];
 			//short[] input_short_8 = new short[506];
-			short[] input_short_0 = new short[16384];
+			short[] input_short_0 = new short[4096];
 			double[] FFTResult;
 			double max = 0;
 			double max2 = 0;
         	int maxIndex = 0;
         	int maxIndex2 = 0;
 			ByteBuffer.wrap(input1).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_1);
-			ByteBuffer.wrap(input2).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_2);
-			ByteBuffer.wrap(input3).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_3);
-			ByteBuffer.wrap(input4).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_4);
+			//ByteBuffer.wrap(input2).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_2);
+			//ByteBuffer.wrap(input3).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_3);
+			//ByteBuffer.wrap(input4).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_4);
 			//ByteBuffer.wrap(input5).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_5);
 			//ByteBuffer.wrap(input6).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_6);
 			//ByteBuffer.wrap(input7).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_7);
 			//ByteBuffer.wrap(input8).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_8);
 			System.arraycopy(input_short_1, 0, input_short_0, 0, 506);
-			System.arraycopy(input_short_2, 0, input_short_0, 506, 506);
-			System.arraycopy(input_short_3, 0, input_short_0, 1012, 506);
-			System.arraycopy(input_short_4, 0, input_short_0, 1518, 506);
+			//System.arraycopy(input_short_2, 0, input_short_0, 506, 506);
+			//System.arraycopy(input_short_3, 0, input_short_0, 1012, 506);
+			//System.arraycopy(input_short_4, 0, input_short_0, 1518, 506);
 			//System.arraycopy(input_short_5, 0, input_short_0, 506*4, 506);
 			//System.arraycopy(input_short_6, 0, input_short_0, 506*5, 506);
 			//System.arraycopy(input_short_7, 0, input_short_0, 506*6, 506);
@@ -370,11 +399,12 @@ class ServerRunable implements Runnable{
 			*/
 			//System.out.println(maxValue);
 			FFTResult = new FFT(input_short_0.length).getFreqSpectrumFromShort(input_short_0);
+			//FFTResult = new FFT(input_short_1.length).getFreqSpectrumFromShort(input_short_1);
 			//FFTResult = new FFT(input.length/4).getFreqSpectrumFromFloat(input_float);
 
 			//for (int j = 28185; j < 28285; j++){
 			//for (int j = 14067; j < 14167; j++){
-			for (int j = 7000; j < 7100; j++){
+			for (int j = 1700; j < FFTResult.length; j++){
 					if (FFTResult[j] > max) {
 					max = FFTResult[j];
 					maxIndex = j;
@@ -392,11 +422,89 @@ class ServerRunable implements Runnable{
 //			System.out.println(maxIndex + "  " + maxIndex2);
 			System.out.println(maxIndex);
 		}
-	}
-    
-    
-    private static void log(String msg) {  
 
+		void dataHandle_short(short[] input_s) {
+			double[] FFTResult;
+			double max1 = 0;
+			double max2 = 0;
+			int maxIndex1 = 0;
+			int maxIndex2 = 0;
+			double[] output = new double[input_s.length];
+			for (int i = 0; i < input_s.length; i++)
+				output[i] = (double) input_s[i] / Short.MAX_VALUE;
+			double[] imag = new double[input_s.length];
+			FFTResult = new GeneralFFT().transformBluestein(output, imag);
+			//FFTResult = new FFT(input_short_1.length).getFreqSpectrumFromShort(input_short_1);
+			//FFTResult = new FFT(input.length/4).getFreqSpectrumFromFloat(input_float);
+
+			//for (int j = 28185; j < 28285; j++){
+			//for (int j = 14067; j < 14167; j++){
+			for (int j = 18950; j < 19050; j++){
+				if (FFTResult[j] > max1) {
+					max1 = FFTResult[j];
+					maxIndex1 = j;
+				}
+			}
+			for (int j = 20450; j < 20550; j++){
+				if (FFTResult[j] > max2) {
+					max2 = FFTResult[j];
+					maxIndex2 = j;
+				}
+			}
+
+/*
+			for (int j = 31157; j < 31257; j++) {
+			//for (int j = 12581; j < 12681; j++) {
+				if (FFTResult[j] > max2) {
+					max2 = FFTResult[j];
+					maxIndex2 = j;
+				}
+			}
+*/
+			//System.out.println("LastFrequencies: " + lastFrequency1 + " " + lastFrequency2);
+			//System.out.println("CurrFrequencies: " + maxIndex1 + "  " + maxIndex2);
+			if (!initialized){
+				lastFrequency1 = maxIndex1;
+				lastFrequency2 = maxIndex2;
+				initialized = true;
+			} else {
+				//if (Math.abs(lastFrequency1 - maxIndex1) >= 10 || Math.abs(lastFrequency2 - maxIndex2) >= 10) {
+				if (Math.abs(19000 - maxIndex1) <= 5 || Math.abs(20500 - maxIndex2) <= 5) {
+						return;
+				} else {
+					//d11 = d01 + (maxIndex1 - lastFrequency1) * c1 / lastFrequency1 * ts;
+					//d12 = d02 + (maxIndex2 - lastFrequency2) * c2 / lastFrequency2 * ts;
+					d11 = d01 + (maxIndex1 - 19000) * c1 / 19000 * ts;
+					d12 = d02 + (maxIndex2 - 20500) * c2 / 20500 * ts;
+					double theta = Math.acos((d11 * d11 + d * d - d12 * d12) / (2 * d * d11));
+					System.out.println("d11: " + d11 + " d12: "+ d12 + " theta: " + theta);
+					double x1 = d11 * Math.cos(theta);
+					double y1 = d11 * Math.sin(theta);
+					//double x2 = d11 * Math.cos(-1 * theta);
+					//double y2 = d11 * Math.sin(-1 * theta);
+					//System.out.println("lastFrequency: " + lastFrequency1 + " currFrequency: " + maxIndex1 + " x1-x0: " + (x1-x0) + " y1-y0: " + (y1-y0));
+					/*
+					for (int i = 0; i < 20; i ++) {
+						//robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX() + (x1 - x0) * 200000000 * -1 / 10), (int) (MouseInfo.getPointerInfo().getLocation().getY() + (y1 - y0) * 200000000 * -1 / 10));
+						robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX()), (int) (MouseInfo.getPointerInfo().getLocation().getY() + (y1 - y0) * 20000 * -1 / 10));
+					}
+					*/
+					//robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX() + (x1 - x0) * 20000000 * -1), (int) (MouseInfo.getPointerInfo().getLocation().getY() + (y1 - y0) * 20000000 * -1));
+					robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX() + (x1 - x0) * 200000000 * -1), (int) (MouseInfo.getPointerInfo().getLocation().getY()));
+					x0 = x1;
+					y0 = y1;
+					d01 = d11;
+					d02 = d12;
+					lastFrequency1 = maxIndex1;
+					lastFrequency2 = maxIndex2;
+				}
+			}
+
+		}
+	}
+
+
+    private static void log(String msg) {
         System.out.println("["+(new Date()) + "] " + msg);  
     }
         
