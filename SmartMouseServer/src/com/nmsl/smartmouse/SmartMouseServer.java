@@ -17,6 +17,8 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Reader;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
@@ -69,6 +71,7 @@ class ServerRunable implements Runnable{
     private StreamConnectionNotifier mStreamConnectionNotifier = null;  
     private StreamConnection mStreamConnection = null; 
     private int count = 0;
+    private int parityCheck = 1;
    
     private static Robot robot;
     
@@ -127,6 +130,24 @@ class ServerRunable implements Runnable{
         private OutputStream mOutputStream = null; 
         private String mRemoteDeviceString = null;
         private StreamConnection mStreamConnection = null;
+		//private byte[] input = new byte[44100];
+		//private byte[] input = new byte[1764];
+		//private byte[] input_1 = new byte[882];
+        //private byte[] input_2 = new byte[882];
+		//private byte[] input = new byte[4048];
+		private byte[] input_1 = new byte[1012];
+		private byte[] input_2 = new byte[1012];
+		private byte[] input_3 = new byte[1012];
+		private byte[] input_4 = new byte[1012];
+		private byte[] input_5 = new byte[1012];
+		private byte[] input_6 = new byte[1012];
+		private byte[] input_7 = new byte[1012];
+		private byte[] input_8 = new byte[1012];
+        //private short[] input_short = new short[32768];
+
+        //private double[] FFTResult;
+        private int indexCounter = 0;
+
         
         
         Receiver(StreamConnection streamConnection){
@@ -179,8 +200,7 @@ class ServerRunable implements Runnable{
     		
 			try {
 				
-	    		Reader mReader = new BufferedReader(new InputStreamReader
-			         ( mInputStream, Charset.forName(StandardCharsets.UTF_8.name())));
+	    		//Reader mReader = new BufferedReader(new InputStreamReader( mInputStream, Charset.forName(StandardCharsets.UTF_8.name())));
 				
 	    		boolean isDisconnected = false;
 	    		
@@ -191,33 +211,69 @@ class ServerRunable implements Runnable{
 					log("ready");
 	
 			        
-		            StringBuilder stringBuilder = new StringBuilder();
+		            //StringBuilder stringBuilder = new StringBuilder();
+		            //int readCount = 0;
 		            int c = 0;
-		            
-		            
-					while ( '\n' != (char)( c = mReader.read()) ) {
-						
-						if ( c == -1){
-							
-							log("Client has been disconnected");
-							
-							count--;
-							log("Current number of clients: " + count);
-							
-							isDisconnected = true;
-							Thread.currentThread().interrupt();
-							
+		            double max = 0;
+		            int maxIndex = 0;
+
+
+					while ((c = mInputStream.read(input_1)) != -1) {
+						if ((c = mInputStream.read(input_2)) == -1) {
 							break;
 						}
-						
-						stringBuilder.append((char) c);
+						if ((c = mInputStream.read(input_3)) == -1) {
+							break;
+						}
+						if ((c = mInputStream.read(input_4)) == -1) {
+							break;
+						}
+						/*
+						if ((c = mInputStream.read(input_5)) == -1) {
+							break;
+						}
+						if ((c = mInputStream.read(input_6)) == -1) {
+							break;
+						}
+						if ((c = mInputStream.read(input_7)) == -1) {
+							break;
+						}
+						if ((c = mInputStream.read(input_8)) == -1) {
+							break;
+						}
+						*/
+						//System.arraycopy(input_1, 0, input, 0, 1012);
+						//System.arraycopy(input_2, 0, input, 1012, 1012);
+						//System.arraycopy(input_1, 0, input, 0, 512);
+						//System.arraycopy(input_2, 0, input, 512, 512);
+						Thread dataHandlingThread = new Thread(new Runnable() {
+							public void run() {
+								//dataHandle(input_1, input_2, input_3, input_4, input_5, input_6, input_7, input_8);
+								dataHandle(input_1, input_2, input_3, input_4);
+							}
+						});
+						dataHandlingThread.start();
+					}
+
+
+					if ( c == -1){
+
+						log("Client has been disconnected");
+
+						count--;
+						log("Current number of clients: " + count);
+
+						isDisconnected = true;
+						Thread.currentThread().interrupt();
+
+						break;
 					}
 	
 		            if ( isDisconnected ) break;
 		            
-		            String recvMessage = stringBuilder.toString();
-			        log( mRemoteDeviceString + ": " + recvMessage );
-					robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX() + Double.parseDouble(recvMessage.split(",")[0]) / 1 ), (int) (MouseInfo.getPointerInfo().getLocation().getY()));
+		            //String recvMessage = stringBuilder.toString();
+			        //log( mRemoteDeviceString + ": " + recvMessage );
+					//robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX() + Double.parseDouble(recvMessage.split(",")[0]) / 1 ), (int) (MouseInfo.getPointerInfo().getLocation().getY()));
 					//robot.mouseMove((int) (Double.parseDouble(recvMessage.split(",")[0]) / 10 ), (int) (MouseInfo.getPointerInfo().getLocation().getY()));
 
 			        /*
@@ -270,12 +326,78 @@ class ServerRunable implements Runnable{
     		
     		log( "Me : " + msg );
     	}
+
+    	void dataHandle(byte[] input1, byte[] input2, byte[] input3, byte[] input4) {
+			//float[] input_float = new float[input.length/4];
+			short[] input_short_1 = new short[506];
+			short[] input_short_2 = new short[506];
+			short[] input_short_3 = new short[506];
+			short[] input_short_4 = new short[506];
+			//short[] input_short_5 = new short[506];
+			//short[] input_short_6 = new short[506];
+			//short[] input_short_7 = new short[506];
+			//short[] input_short_8 = new short[506];
+			short[] input_short_0 = new short[16384];
+			double[] FFTResult;
+			double max = 0;
+			double max2 = 0;
+        	int maxIndex = 0;
+        	int maxIndex2 = 0;
+			ByteBuffer.wrap(input1).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_1);
+			ByteBuffer.wrap(input2).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_2);
+			ByteBuffer.wrap(input3).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_3);
+			ByteBuffer.wrap(input4).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_4);
+			//ByteBuffer.wrap(input5).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_5);
+			//ByteBuffer.wrap(input6).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_6);
+			//ByteBuffer.wrap(input7).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_7);
+			//ByteBuffer.wrap(input8).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short_8);
+			System.arraycopy(input_short_1, 0, input_short_0, 0, 506);
+			System.arraycopy(input_short_2, 0, input_short_0, 506, 506);
+			System.arraycopy(input_short_3, 0, input_short_0, 1012, 506);
+			System.arraycopy(input_short_4, 0, input_short_0, 1518, 506);
+			//System.arraycopy(input_short_5, 0, input_short_0, 506*4, 506);
+			//System.arraycopy(input_short_6, 0, input_short_0, 506*5, 506);
+			//System.arraycopy(input_short_7, 0, input_short_0, 506*6, 506);
+			//System.arraycopy(input_short_8, 0, input_short_0, 506*7, 506);
+			//ByteBuffer.wrap(input).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(input_short);
+			//ByteBuffer.wrap(input).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer().get(input_float);
+			//System.out.println(input_float.length);
+			/*
+			for (int i = 0; i < input_float.length; i++){
+				if (maxValue < input_float[i])
+					maxValue = input_float[i];
+			}
+			*/
+			//System.out.println(maxValue);
+			FFTResult = new FFT(input_short_0.length).getFreqSpectrumFromShort(input_short_0);
+			//FFTResult = new FFT(input.length/4).getFreqSpectrumFromFloat(input_float);
+
+			//for (int j = 28185; j < 28285; j++){
+			//for (int j = 14067; j < 14167; j++){
+			for (int j = 7000; j < 7100; j++){
+					if (FFTResult[j] > max) {
+					max = FFTResult[j];
+					maxIndex = j;
+				}
+			}
+/*
+			for (int j = 31157; j < 31257; j++) {
+			//for (int j = 12581; j < 12681; j++) {
+				if (FFTResult[j] > max2) {
+					max2 = FFTResult[j];
+					maxIndex2 = j;
+				}
+			}
+*/
+//			System.out.println(maxIndex + "  " + maxIndex2);
+			System.out.println(maxIndex);
+		}
 	}
     
     
     private static void log(String msg) {  
-    	
+
         System.out.println("["+(new Date()) + "] " + msg);  
     }
         
-}  
+}
