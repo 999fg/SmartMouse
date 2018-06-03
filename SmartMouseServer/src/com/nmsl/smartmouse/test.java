@@ -13,14 +13,10 @@ public class test {
 		} catch (AWTException e) {
 			e.printStackTrace();
 		}
+
 		for(int i = 0; i < 1920; i ++) {
 			for(int j = 0; j < 1080; j++) {
 				robot.mouseMove(i,j);
-				try {
-					Thread.sleep(1);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
 			}
 		}
 	}
