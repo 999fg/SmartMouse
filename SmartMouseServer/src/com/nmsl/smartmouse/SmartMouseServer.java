@@ -26,6 +26,8 @@ import java.awt.AWTException;
 import java.awt.MouseInfo;
 import java.awt.Robot;
 
+import static java.lang.Double.NaN;
+
 
 public class SmartMouseServer{
 	  
@@ -73,16 +75,23 @@ class ServerRunable implements Runnable{
     private int count = 0;
     private int lastFrequency1 = 0;
     private int lastFrequency2 = 0;
-    private double d01 = 0.2;
-    private double d02 = 0.2;
+    private double d01 = 0.25;
+    private double d02 = 0.25;
     private double d11 = 0.0;
     private double d12 = 0.0;
-    private double d = 0.3;
+	//private double d1 = 0.0; // second method
+	//private double d2 = 0.0; // second method
+	//private double deltaX = 0.0; // second method
+	//private double deltaY = 0.0; // second method
+    private double d = 0.32;
+    private long dt = 0;
+    private long last_timestamp = 0;
+    private long curr_timestamp = 0;
     private double c1 = 0.018242; //speed of 19kHz
 	private double c2 = 0.016907; //speed of 20.5kHz
 	private double ts = 0.04; //time interval 40ms
-	private double x0 = 0.15;
-	private double y0 = 0.15;
+	private double x0 = 0.2;
+	private double y0 = -0.2;
 	private boolean initialized = false;
     private int parityCheck = 1;
    
@@ -423,6 +432,7 @@ class ServerRunable implements Runnable{
 			System.out.println(maxIndex);
 		}
 
+		/*
 		void dataHandle_short(short[] input_s) {
 			double[] FFTResult;
 			double max1 = 0;
@@ -452,15 +462,15 @@ class ServerRunable implements Runnable{
 				}
 			}
 
-/*
-			for (int j = 31157; j < 31257; j++) {
-			//for (int j = 12581; j < 12681; j++) {
-				if (FFTResult[j] > max2) {
-					max2 = FFTResult[j];
-					maxIndex2 = j;
-				}
-			}
-*/
+
+			//for (int j = 31157; j < 31257; j++) {
+			////for (int j = 12581; j < 12681; j++) {
+			//	if (FFTResult[j] > max2) {
+			//		max2 = FFTResult[j];
+			//		maxIndex2 = j;
+			//	}
+			//}
+
 			//System.out.println("LastFrequencies: " + lastFrequency1 + " " + lastFrequency2);
 			//System.out.println("CurrFrequencies: " + maxIndex1 + "  " + maxIndex2);
 			if (!initialized){
@@ -474,23 +484,23 @@ class ServerRunable implements Runnable{
 				} else {
 					//d11 = d01 + (maxIndex1 - lastFrequency1) * c1 / lastFrequency1 * ts;
 					//d12 = d02 + (maxIndex2 - lastFrequency2) * c2 / lastFrequency2 * ts;
-					d11 = d01 + (maxIndex1 - 19000) * c1 / 19000 * ts;
-					d12 = d02 + (maxIndex2 - 20500) * c2 / 20500 * ts;
+					//d11 = d01 + (maxIndex1 - 19000) * c1 / 19000 * ts;
+					//d12 = d02 + (maxIndex2 - 20500) * c2 / 20500 * ts;
 					double theta = Math.acos((d11 * d11 + d * d - d12 * d12) / (2 * d * d11));
-					System.out.println("d11: " + d11 + " d12: "+ d12 + " theta: " + theta);
+					//System.out.println("d11: " + d11 + " d12: "+ d12 + " theta: " + theta);
 					double x1 = d11 * Math.cos(theta);
 					double y1 = d11 * Math.sin(theta);
 					//double x2 = d11 * Math.cos(-1 * theta);
 					//double y2 = d11 * Math.sin(-1 * theta);
 					//System.out.println("lastFrequency: " + lastFrequency1 + " currFrequency: " + maxIndex1 + " x1-x0: " + (x1-x0) + " y1-y0: " + (y1-y0));
-					/*
-					for (int i = 0; i < 20; i ++) {
-						//robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX() + (x1 - x0) * 200000000 * -1 / 10), (int) (MouseInfo.getPointerInfo().getLocation().getY() + (y1 - y0) * 200000000 * -1 / 10));
-						robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX()), (int) (MouseInfo.getPointerInfo().getLocation().getY() + (y1 - y0) * 20000 * -1 / 10));
-					}
-					*/
+
+					//for (int i = 0; i < 20; i ++) {
+					//	//robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX() + (x1 - x0) * 200000000 * -1 / 10), (int) (MouseInfo.getPointerInfo().getLocation().getY() + (y1 - y0) * 200000000 * -1 / 10));
+					//	robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX()), (int) (MouseInfo.getPointerInfo().getLocation().getY() + (y1 - y0) * 20000 * -1 / 10));
+					//}
+
 					//robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX() + (x1 - x0) * 20000000 * -1), (int) (MouseInfo.getPointerInfo().getLocation().getY() + (y1 - y0) * 20000000 * -1));
-					robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX() + (x1 - x0) * 200000000 * -1), (int) (MouseInfo.getPointerInfo().getLocation().getY()));
+					robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX()), (int) (MouseInfo.getPointerInfo().getLocation().getY()+ (y1 - y0) * 200000000 * -1));
 					x0 = x1;
 					y0 = y1;
 					d01 = d11;
@@ -499,7 +509,92 @@ class ServerRunable implements Runnable{
 					lastFrequency2 = maxIndex2;
 				}
 			}
+		}
+		*/
 
+		void dataHandle_short(short[] input_s) {
+			double[] FFTResult;
+			double max1 = 0;
+			double max2 = 0;
+			int maxIndex1 = 0;
+			int maxIndex2 = 0;
+			double[] output = new double[input_s.length];
+			for (int i = 0; i < input_s.length; i++)
+				output[i] = (double) input_s[i] / Short.MAX_VALUE;
+			double[] imag = new double[input_s.length];
+			FFTResult = new GeneralFFT().transformBluestein(output, imag);
+			for (int j = 18950; j < 19050; j++){
+				if (FFTResult[j] > max1) {
+					max1 = FFTResult[j];
+					maxIndex1 = j;
+				}
+			}
+			for (int j = 20450; j < 20550; j++){
+				if (FFTResult[j] > max2) {
+					max2 = FFTResult[j];
+					maxIndex2 = j;
+				}
+			}
+			if (!initialized) {
+				last_timestamp = new Date().getTime();
+				initialized = true;
+			} else {
+				curr_timestamp = new Date().getTime();
+				dt = curr_timestamp - last_timestamp;
+				last_timestamp = curr_timestamp;
+				//if (Math.abs(lastFrequency1 - maxIndex1) >= 10 || Math.abs(lastFrequency2 - maxIndex2) >= 10) {
+				if (Math.abs(19000 - maxIndex1) >= 25 || Math.abs(20500 - maxIndex2) >= 25 || Math.abs(19000 - maxIndex1) <= 4 || Math.abs(20500 - maxIndex2) <=4) {
+					return;
+				} else {
+					//d11 = d01 + (maxIndex1 - 19000) * c1 / 19000 * dt / 1000;
+					//d12 = d02 + (maxIndex2 - 20500) * c2 / 20500 * dt / 1000;
+					d11 = d01 + (19000 - maxIndex1) * 346.6 / 19000 * dt / 1000;
+					d12 = d02 + (20500 - maxIndex2) * 346.6 / 20500 * dt / 1000;
+					//System.out.println("d11, d01, maxIndex1, c1, dt:" + d11 + " " + d01+ " " + maxIndex1 + " " + c1 + " " + dt);
+					double theta = Math.acos((d11 * d11 + d * d - d12 * d12) / (2 * d * d11));
+					//System.out.println("d11: " + d11 + " d12: "+ d12 + " theta: " + theta);
+					double x1 = d11 * Math.cos(theta);
+					double y1 = -1 * d11 * Math.sin(theta);
+					System.out.println("d11 " + d11 + " d12 " + d12 + "theta_equation" + ((d11 * d11 + d * d - d12 * d12) / (2 * d * d11)) + " theta "+ theta);
+					//System.out.println("deltaX:" + (x1 - x0) + " deltaY: " + (y1 - y0) + " x1: " + x1 + " y1: " + y1 + " theta: " + theta + " abs(maxIndex1 - 19000): " + Math.abs(maxIndex1 - 19000) + " abs(maxIndex2 - 20500): " + Math.abs(maxIndex2 - 20500));
+					//System.out.println("deltaX:" + (x1 - x0) + " deltaY: " + (y1 - y0) + " x1: " + x1 + " y1: " + y1 + " theta: " + theta + " abs(maxIndex1 - 19000): " + Math.abs(maxIndex1 - 19000) + " abs(maxIndex2 - 20500): " + Math.abs(maxIndex2 - 20500));
+					//robot.mouseMove((int) ((x1 / d) * 1920), (int) ((y1 / 0.4) * 1080));
+					robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX() + (x1 - x0) * 1000), (int) (MouseInfo.getPointerInfo().getLocation().getY() + (y1 - y0) * 1000 * -1));
+					x0 = x1;
+					y0 = y1;
+					d01 = d11;
+					d02 = d12;
+					/*
+					if (x0 < 0) {
+						double theta1 = Math.atan(Math.abs(y0) / Math.abs(x0));
+						double theta2 = Math.atan(Math.abs(y0) / (Math.abs(x0)+d));
+						d1 = (maxIndex1 / 19000 - 1) * 346.6 * dt / 1000;
+						d2 = (maxIndex2 / 20500 - 1) * 346.6 * dt / 1000;
+						deltaX = d1 * Math.cos(theta1) + d2 * Math.cos(theta2);
+						deltaY = d1 * Math.sin(theta1) + d2 * Math.sin(theta2);
+					} else if (x0 > 0 && x0 < d) {
+						double theta1 = Math.atan(Math.abs(y0) / Math.abs(x0));
+						double theta2 = Math.atan(Math.abs(y0) / Math.abs(d-x0));
+						d1 = (maxIndex1 / 19000 - 1) * 346.6 * dt / 1000;
+						d2 = (maxIndex2 / 20500 - 1) * 346.6 * dt / 1000;
+						deltaX = -1 * d1 * Math.cos(theta1) + d2 * Math.cos(theta2);
+						deltaY = d1 * Math.sin(theta1) + d2 * Math.sin(theta2);
+					} else if (x0 > d) {
+						double theta1 = Math.atan(Math.abs(y0) / Math.abs(x0));
+						double theta2 = Math.atan(Math.abs(y0) / Math.abs(x0 - d));
+						d1 = (maxIndex1 / 19000 - 1) * 346.6 * dt / 1000;
+						d2 = (maxIndex2 / 20500 - 1) * 346.6 * dt / 1000;
+						deltaX = -1 * d1 * Math.cos(theta1) + -1 * d2 * Math.cos(theta2);
+						deltaY = d1 * Math.sin(theta1) + d2 * Math.sin(theta2);
+					}
+					System.out.println("deltaX:" + deltaX + " deltaY: " + deltaY);
+					//robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX() + deltaX), (int) (MouseInfo.getPointerInfo().getLocation().getY() + deltaY));
+					//robot.mouseMove((int) (MouseInfo.getPointerInfo().getLocation().getX()), (int) (MouseInfo.getPointerInfo().getLocation().getY()+ (y1 - y0) * 200000000 * -1));
+					x0 = x0 + deltaX;
+					y0 = y0 + deltaY;
+					*/
+				}
+			}
 		}
 	}
 
